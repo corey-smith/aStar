@@ -8,13 +8,13 @@ import java.util.LinkedList;
  * 
  * A* path finder
  */
-public class AStar {
+public abstract class AStar {
 
 	//2D array or x/y position of tiles - should be height of map
-	public PathNode nodes[][];
-	ArrayList<PathNode> collidablePathNodes;
-	int tileWidth;
-	int tileHeight;
+	static PathNode nodes[][];
+	static ArrayList<Collidable> collidablePathNodes;
+	static int tileWidth;
+	static int tileHeight;
 	
 	/**
 	 * Should only need to declare this once in the main class to initialize these params
@@ -22,34 +22,34 @@ public class AStar {
 	 * @param tileWidth
 	 * @param tileHeight
 	 */
-	public AStar(ArrayList<PathNode> collidablePathNodes, int[][] nodes, int tileWidth, int tileHeight) {
-		this.collidablePathNodes = collidablePathNodes;
-		this.tileWidth = tileWidth;
-		this.tileHeight = tileHeight;
-		this.nodes = new PathNode[nodes.length][nodes[0].length];
+	public static void initialize(ArrayList<Collidable> tmpCollidablePathNodes, int[][] tmpNodes, int tmpTileWidth, int tmpTileHeight) {
+		collidablePathNodes = tmpCollidablePathNodes;
+		tileWidth = tmpTileWidth;
+		tileHeight = tmpTileHeight;
+		nodes = new PathNode[tmpNodes.length][tmpNodes[0].length];
 		initializeNodes();
+		setCollidableNodes(tmpCollidablePathNodes);
 	}
 	
 	/**
 	 * build out node array and clear any previous values
 	 */
-	public void initializeNodes() {
+	private static void initializeNodes() {
 		//build out nodes array
 		for(int x = 0; x < nodes.length; x++) {
 			for(int y = 0; y < nodes[0].length; y++) {
-				this.nodes[x][y] = new PathNode(x, y);
+				nodes[x][y] = new PathNode(x, y);
 			}
 		}
-		setCollidableNodes();
 	}
 	
 	/**
 	 * loop through all of the collidable objects and find their corresponding node and set it to collidable
 	 */
-	public void setCollidableNodes() {
-		for(PathNode collNode : collidablePathNodes) {
-			float objLeft = collNode.getX();
-			float objBottom = collNode.getY();
+	private static void setCollidableNodes(ArrayList<Collidable> collidablePathNodes) {
+		for(Collidable collNode : collidablePathNodes) {
+			float objLeft = collNode.getLeftBound();
+			float objBottom = collNode.getBottomBound();
 			float objRight = objLeft + collNode.getWidth();
 			float objTop = objBottom + collNode.getHeight();
 			int firstX = (int) Math.floor(objLeft / tileWidth);
@@ -64,8 +64,12 @@ public class AStar {
 		}
 	}
 	
-	public ArrayList<PathNode> findPath(PathNode startingNode, PathNode endingNode) {
-		return this.findPath(startingNode.getX(),  startingNode.getY(), endingNode.getX(), endingNode.getY());
+	public static ArrayList<PathNode> findPath(PathNode startingNode, PathNode endingNode) {
+		return findPath(startingNode.getX(),  startingNode.getY(), endingNode.getX(), endingNode.getY());
+	}
+
+	public static ArrayList<PathNode> findPath(float startingX, float startingY, float endingX, float endingY) {
+		return findPath(getXNodeIndexFromOffset(startingX), getYNodeIndexFromOffset(startingY), getXNodeIndexFromOffset(endingX), getYNodeIndexFromOffset(endingY));
 	}
 	
 	/**
@@ -76,7 +80,7 @@ public class AStar {
 	 * @param endingY   - map in relation to map
 	 * @return			- ArrayList<PathNode> of the path nodes in order
 	 */
-	public ArrayList<PathNode> findPath(int startingX, int startingY, int endingX, int endingY) {
+	public static ArrayList<PathNode> findPath(int startingX, int startingY, int endingX, int endingY) {
 		LinkedList<PathNode> openList = new LinkedList<PathNode>();
 		LinkedList<PathNode> closedList = new LinkedList<PathNode>();
 		PathNode[][] pathNodes = getPathNodes();
@@ -134,7 +138,7 @@ public class AStar {
 	 * Get a local copy of all nodes to use in determining path
 	 * @return - basically a copy of nodes[][]
 	 */
-	public PathNode[][] getPathNodes() {
+	private static PathNode[][] getPathNodes() {
 		PathNode[][] returnArray = new PathNode[nodes.length][nodes[0].length];
 		for(int x = 0; x < nodes.length; x++) {
 			for(int y = 0; y < nodes[0].length; y++) {
@@ -144,7 +148,7 @@ public class AStar {
 		return returnArray;
 	}
 	
-	public PathNode lowestFCostOpenNode(LinkedList<PathNode> openList) {
+	private static PathNode lowestFCostOpenNode(LinkedList<PathNode> openList) {
 		PathNode returnNode = null;
 		for(PathNode curNode : openList) {
 			if(returnNode == null || (curNode.getFCost() != null && returnNode.getFCost() != null && curNode.getFCost() < returnNode.getFCost())) {
@@ -158,15 +162,15 @@ public class AStar {
 	 * Get all of the possible adjacent (not collidable) nodes given a node
 	 * @return - list of adjacent nodes
 	 */
-	public LinkedList<PathNode> getAdjacentNodes(PathNode currentNode) {
-		return this.getAdjacentNodes(currentNode, this.getPathNodes());
+	public static LinkedList<PathNode> getAdjacentNodes(PathNode currentNode) {
+		return getAdjacentNodes(currentNode, getPathNodes());
 	}
 	
 	/**
 	 * Get all of the possible adjacent (not collidable) nodes given a node and an original or copy of the nodes in the map
 	 * @return - list of adjacent nodes
 	 */
-	public LinkedList<PathNode> getAdjacentNodes(PathNode currentNode, PathNode[][] pathNodes) {
+	public static LinkedList<PathNode> getAdjacentNodes(PathNode currentNode, PathNode[][] pathNodes) {
 		LinkedList<PathNode> returnList = new LinkedList<PathNode>();
 		//define nodes, validate they're there
 		int curX = currentNode.x;
@@ -195,8 +199,8 @@ public class AStar {
 		return returnList;
 	}
 	
-	public boolean nodeExists(int x, int y) {
-		if(x >= 0 && y >= 0 && x < this.nodes.length && y < this.nodes[0].length) {
+	private static boolean nodeExists(int x, int y) {
+		if(x >= 0 && y >= 0 && x < nodes.length && y < nodes[0].length) {
 			return true;
 		} else {
 			return false;
@@ -210,12 +214,7 @@ public class AStar {
 	 * @param endingNode
 	 * @return
 	 */
-	public float calculateHCost(PathNode curNode, PathNode endingNode) {
-		/*
-		int dx = endingNode.getX() - curNode.getX();
-	    int dy = endingNode.getY() - curNode.getY();
-	    return (float) Math.sqrt((dx*dx)+(dy*dy));
-	    */
+	private static float calculateHCost(PathNode curNode, PathNode endingNode) {
 	    //less costly and simpler method
 	    int dx = Math.abs(endingNode.getX() - curNode.getX());
 	    int dy = Math.abs(endingNode.getY() - curNode.getY());
@@ -227,7 +226,7 @@ public class AStar {
 	 * Build out arraylist with the resulting path
 	 * @return - ordered list of nodes in the path
 	 */
-	public ArrayList<PathNode> getPath(PathNode startingNode, PathNode endingNode) {
+	public static ArrayList<PathNode> getPath(PathNode startingNode, PathNode endingNode) {
 		ArrayList<PathNode> returnPath = new ArrayList<PathNode>();
 		PathNode curNode = endingNode;
 		//work back through previous nodes and add them to the path
@@ -245,7 +244,7 @@ public class AStar {
 	 * @param curUnit - the unit who is going to move somewhere
 	 * @return - arraylist of nodes that the unit can move to
 	 */
-	public ArrayList<PathNode> getMovableNodes(int xNode, int yNode, int distance) {
+	public static ArrayList<PathNode> getMovableNodes(int xNode, int yNode, int distance) {
 		ArrayList<PathNode> movableNodes = new ArrayList<PathNode>();
 		ArrayList<String> movableIDs = new ArrayList<String>();
 		//loop through x direction, y direction
@@ -275,8 +274,24 @@ public class AStar {
 	 * This is a way to see what a node's ID would be given an X and Y location
 	 * @return String of ID
 	 */
-	public String getNodeIDFromLoc(int x, int y) {
+	public static String getNodeIDFromLoc(int x, int y) {
 		PathNode tempNode = new PathNode(x,y);
 		return tempNode.getID();
 	}
+	
+	public static int getXNodeIndexFromOffset(float xOffset) {
+		return (int) Math.floor(xOffset/tileWidth);
+	}
+	
+	public static int getYNodeIndexFromOffset(float yOffset) {
+		return (int) Math.floor(yOffset/tileHeight);
+	}
+	
+	public static int getXOffsetFromNodePos(int xNode) {
+	    return (int) xNode * tileWidth;
+	}
+    
+    public static int getYOffsetFromNodePos(int yNode) {
+        return (int) yNode * tileHeight;
+    }
 }
