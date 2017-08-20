@@ -288,10 +288,10 @@ public abstract class AStar {
 	}
 	
 	public static int getXOffsetFromNodePos(int xNode) {
-	    return (int) xNode * tileWidth;
+	    return (int) xNode * tileWidth + (tileWidth/2);
 	}
     
     public static int getYOffsetFromNodePos(int yNode) {
-        return (int) yNode * tileHeight;
+        return (int) yNode * tileHeight + (tileHeight/2);
     }
 }
